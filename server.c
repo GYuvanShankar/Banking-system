@@ -1,25 +1,3 @@
-/*
- * Copyright (C) 2013 - Dhruv Kohli <codechiggum at gmail.com>
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * 
- * This code heavily borrows from ns3 itself which are copyright of their
- * respective authors and redistributable under the same conditions.
- *
- */
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/types.h>
@@ -27,6 +5,9 @@
 #include <netinet/in.h>
 #include <string.h>
 #include <time.h>
+#include <arpa/inet.h>
+#include <unistd.h>
+#include <ctype.h>
 
 #define MAX_USERID_LEN 256
 #define MAX_PASS_LEN 256
@@ -96,17 +77,14 @@ struct userInfo getUserInfo(int clientFD) {
 	char *buffU;
 	char *buffP;
 
-	//asking for username
 	sendMsgToClient(clientFD, username);
 	buffU = receiveMsgFromClient(clientFD);
 
-	//asking for password
 	sendMsgToClient(clientFD, password);
 	buffP = receiveMsgFromClient(clientFD);
 
 	struct userInfo uInfo;
 	memset(&uInfo, 0, sizeof(uInfo));
-	//copy username and password with triming to uInfo
 
 	int i;
 	for(i = 0; i < MAX_USERID_LEN; ++i) {
@@ -161,14 +139,14 @@ int authorizeUser(struct userInfo uInfo) {
 	char *save_ptr;
 	char *tok = strtok_r(str, delim, &save_ptr);
 	do {
-		if(strcmp(uInfo.userId, tok) == 0) {//user name matched
+		if(strcmp(uInfo.userId, tok) == 0) {
 			tok = NULL;
 			tok = strtok_r(NULL, delim, &save_ptr);
-			if(strcmp(uInfo.pass, tok) == 0) {//password matched
+			if(strcmp(uInfo.pass, tok) == 0) {
 				tok = NULL;
 				tok = strtok_r(NULL, delim, &save_ptr);
 				if(strcmp(tok, "U") == 0)
-					return USER;	//return the user type
+					return USER;
 				else if(strcmp(tok, "A") == 0)
 					return ADMIN;
 				else if(strcmp(tok, "P") == 0)
@@ -219,7 +197,6 @@ void printMiniStatement(int clientFD, char *fileName) {
 	int cnt = 0;
 	do {
 		if(cnt == 0 && tok != NULL) {
-			//addStrings(&miniSt, tok, '>');
 			miniSt = (char*)malloc(((strlen(tok)+1))*sizeof(char));
 			strcpy(miniSt, tok);
 			miniSt[strlen(tok)] = 0;
@@ -273,7 +250,7 @@ char* returnBalance(char *fileName) {
 void processUserRequests(int clientFD, struct userInfo uInfo) {
 	int n;
 	char *buff = NULL;
-	sendMsgToClient(clientFD, "Enter M for Mini-Statement, B for Available Balance exit to terminate");
+	sendMsgToClient(clientFD, "Enter M for Mini-Statement, B for Available Balance, exit to terminate");
 	while(1) {
 		if(buff != NULL)
 			free(buff);
@@ -594,47 +571,23 @@ int main(int argc, char **argv) {
 		exit(EXIT_FAILURE);
 	}
 
-	/*
-		socket(DOMAIN, TYPE, PROTOCOL) returns int
-	*/
 	if((sockFD = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
 		error("Error opening socket.\n");
 	}
 
-	//initializing variables
 	memset((void*)&serv_addr, 0, sizeof(serv_addr));
 	portNO = atoi(argv[1]);
 
-	//setting serv_addr
-	serv_addr.sin_family = AF_INET;				//setting DOMAIN
-	serv_addr.sin_addr.s_addr = INADDR_ANY;		//permits any incoming IP
-	/*
-		Note: to permit a fixed IP:
-		ret = inet_aton((char *)"a.b.c.d", &serv_addr.sin_addr);
-		if(ret == 0)
-			address is invalid
-		else
-			valid
-	*/
-	serv_addr.sin_port = htons(portNO);			//set the port number
+	serv_addr.sin_family = AF_INET;	
+	serv_addr.sin_addr.s_addr = INADDR_ANY;		
+	serv_addr.sin_port = htons(portNO);
 
-	//binding the socket with the server logistics which are in sockaddr_in serv_addr
 	if(bind(sockFD, (struct sockaddr*)&serv_addr, sizeof(serv_addr)) < 0) {
 		error("Error on binding.\n");
 	}
 
-	//setting socket option to reuse the same port immmediately after closing socket
-	//BUT with a caveat: Client should close first
 	int reuse = 1;
 	setsockopt(sockFD, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(int));
-
-	/*
-		listen(SOCKETFD, BACKLOG) returns 0 on success -1 on failure
-		backlog is the maximum number of connections the kernel should queue for this socket. 
-		The backlog argument provides an hint to the system of the number of outstanding connect 
-		requests that is should enqueue in behalf of the process. Once the queue is full, the 
-		system will reject additional connection requests. 
-	*/
 
 
 	if(listen(sockFD, 7) < 0) {

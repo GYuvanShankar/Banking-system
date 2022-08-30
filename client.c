@@ -1,25 +1,3 @@
-/*
- * Copyright (C) 2013 - Dhruv Kohli <codechiggum at gmail.com>
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * 
- * This code heavily borrows from ns3 itself which are copyright of their
- * respective authors and redistributable under the same conditions.
- *
- */
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/types.h>
@@ -27,6 +5,9 @@
 #include <netinet/in.h>
 #include <netdb.h>
 #include <string.h>
+#include <arpa/inet.h>
+#include <string.h>
+#include <unistd.h>
 
 #define MAX_MSG_LEN 257
 #define RESPONSE_BYTES 512
@@ -88,9 +69,8 @@ int main(int argc, char **argv) {
 	}
 
 	memset(&serv_addr, 0, sizeof(serv_addr));
-	//setting sockaddr_in serv_addr
-	serv_addr.sin_family = AF_INET;			//setting DOMAIN
-	serv_addr.sin_port = htons(portNO);		//setting port numbet
+	serv_addr.sin_family = AF_INET;	
+	serv_addr.sin_port = htons(portNO);	
 	if((inet_aton(argv[1], &serv_addr.sin_addr)) == 0) {
 		error("Error Invalid Host Name");
 	}
